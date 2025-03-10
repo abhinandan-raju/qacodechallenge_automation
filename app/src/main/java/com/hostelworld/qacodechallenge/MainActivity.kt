@@ -11,16 +11,17 @@ import com.hostelworld.qacodechallenge.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var userLogin: ActivityResultLauncher<Any?>
+    private lateinit var userLogin: ActivityResultLauncher<Any>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ActivityMainBinding.inflate(layoutInflater).run {
-            setContentView(root)
-            setupUI(this)
-        }
 
-        userLogin = registerForActivityResult(userLoginContract) { user: User? ->
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setupUI(binding)
+
+        // Initialize the activity result launcher properly
+        userLogin = registerForActivityResult(UserLoginContract()) { user: User? ->
             user?.let {
                 val userDetailsIntent = UserDetailsActivity.intent(this, it)
                 startActivity(userDetailsIntent)
@@ -34,21 +35,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnLogin.setOnClickListener {
-            userLogin.launch(null)
+            userLogin.launch(Unit) // Pass a valid input (Unit is often used when no input is needed)
         }
     }
+}
 
-    private val userLoginContract = object: ActivityResultContract<Any, User?>() {
-        override fun createIntent(context: Context, input: Any?): Intent {
-            return LoginActivity.intent(context)
-        }
-
-        override fun parseResult(resultCode: Int, intent: Intent?): User? {
-            return intent?.takeIf { resultCode == Activity.RESULT_OK }?.let { loginIntent: Intent ->
-                loginIntent.getSerializableExtra(LoginActivity.RESULT_USER) as? User
-            }
-        }
-
+// Move the ActivityResultContract to its own class
+class UserLoginContract : ActivityResultContract<Any, User?>() {
+    override fun createIntent(context: Context, input: Any): Intent {
+        return LoginActivity.intent(context)
     }
 
+    override fun parseResult(resultCode: Int, intent: Intent?): User? {
+        return intent?.takeIf { resultCode == Activity.RESULT_OK }
+            ?.getSerializableExtra(LoginActivity.RESULT_USER) as? User
+    }
 }
